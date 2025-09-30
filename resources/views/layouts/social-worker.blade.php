@@ -7,20 +7,20 @@
     <title>{{ $meta_title }}</title>
 
     <!-- Updated Meta Description -->
-    <meta name="description" content="Teranium delivers scalable digital transformation, custom software, and capacity-building solutions to empower African businesses and organizations">
+    <meta name="description" content="CAMS - Child Abuse Management System for tracking and managing child abuse cases">
 
-    <meta name="author" content="Teranium delivers scalable digital transformation, custom software, and capacity-building solutions to empower African businesses and organizations." />
-    <meta content="Teranium delivers scalable digital transformation, custom software, and capacity-building solutions to empower African businesses and organizations" name="description" />
+    <meta name="author" content="CAMS - Child Abuse Management System" />
+    <meta content="CAMS - Child Abuse Management System for tracking and managing child abuse cases" name="description" />
     <meta content="{{ $meta_title }}" property="og:title" />
-    <meta content="Teranium delivers scalable digital transformation, custom software, and capacity-building solutions to empower African businesses and organizations." property="og:description" />
+    <meta content="CAMS - Child Abuse Management System for tracking and managing child abuse cases" property="og:description" />
     <meta content="{{ $meta_title }}" property="twitter:title" />
-    <meta content="Teranium delivers scalable digital transformation, custom software, and capacity-building solutions to empower African businesses and organizations." property="twitter:description" />
+    <meta content="CAMS - Child Abuse Management System for tracking and managing child abuse cases" property="twitter:description" />
     <meta content="{{ $meta_image }}" property="og:image" />
     <meta content="{{ $meta_image }}" property="twitter:image" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     <meta property="og:type" content="website" />
     <meta content="summary_large_image" name="twitter:card" />
-    <meta content="Teranium Co" name="generator" />
+    <meta content="CAMS System" name="generator" />
 
     <!-- favicon -->
     <link rel="shortcut icon" href="{{ url('logo.png') }}" />
@@ -108,7 +108,7 @@
                                                     <img src="" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-1" />
                                                 </div>
                                                 <div class="flex-grow-1">
-                                                    <p class="mb-0"><span class="fw-medium">Josephine Thompson </span>commented on admin panel <span>" Wow 😍! this admin looks good and awesome design"</span></p>
+                                                    <p class="mb-0"><span class="fw-medium">System </span>New case assigned for review</p>
                                                 </div>
                                             </div>
                                         </a>
@@ -175,55 +175,56 @@
             <button type="button" class="button-sm-hover" aria-label="Show Full Sidebar">
                 <i class="ri-menu-2-line fs-24 button-sm-hover-icon"></i>
             </button>
-        <div class="scrollbar" data-simplebar>
-    <ul class="navbar-nav" id="navbar-nav">
-        <li class="menu-title">Menu</li>
 
-        <!-- Dashboard -->
-        <li class="nav-item">
-            <a class="nav-link {{ request()->routeIs('social-worker.dashboard') ? 'active' : '' }}"
-               href="{{ route('social-worker.dashboard') }}">
-                <span class="nav-icon">
-                    <i class="ri-dashboard-2-line"></i>
-                </span>
-                <span class="nav-text"> Dashboard </span>
-            </a>
-        </li>
+            <div class="scrollbar" data-simplebar>
+                <ul class="navbar-nav" id="navbar-nav">
+                    <li class="menu-title">Menu</li>
 
-        <!-- Add Cases -->
-        <li class="nav-item">
-            <a class="nav-link {{ request()->routeIs('social-worker.add-cases') ? 'active' : '' }}"
-               href="{{ route('social-worker.add-cases') }}">
-                <span class="nav-icon">
-                    <i class="ri-add-circle-line"></i>
-                </span>
-                <span class="nav-text"> Add Cases </span>
-            </a>
-        </li>
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('social-worker.dashboard') ? 'active' : '' }}"
+                           href="{{ route('social-worker.dashboard') }}">
+                            <span class="nav-icon">
+                                <i class="ri-dashboard-2-line"></i>
+                            </span>
+                            <span class="nav-text"> Dashboard </span>
+                        </a>
+                    </li>
 
-        <!-- View Cases -->
-        <li class="nav-item">
-            <a class="nav-link {{ request()->routeIs('social-worker.cases') ? 'active' : '' }}"
-               href="{{ route('social-worker.cases') }}">
-                <span class="nav-icon">
-                    <i class="ri-contacts-book-3-line"></i>
-                </span>
-                <span class="nav-text"> Cases </span>
-            </a>
-        </li>
+                    <!-- Add Cases -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('social-worker.cases.create') ? 'active' : '' }}"
+                           href="{{ route('social-worker.cases.create') }}">
+                            <span class="nav-icon">
+                                <i class="ri-add-circle-line"></i>
+                            </span>
+                            <span class="nav-text"> Add Cases </span>
+                        </a>
+                    </li>
 
-        <!-- Profile -->
-        <li class="nav-item">
-            <a class="nav-link {{ request()->routeIs('social-worker.profile') ? 'active' : '' }}"
-               href="{{ route('social-worker.profile') }}">
-                <span class="nav-icon">
-                    <i class="ri-user-line"></i>
-                </span>
-                <span class="nav-text"> Profile </span>
-            </a>
-        </li>
-    </ul>
-</div>
+                    <!-- View Cases -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('social-worker.cases.*') && !request()->routeIs('social-worker.cases.create') ? 'active' : '' }}"
+                           href="{{ route('social-worker.cases.index') }}">
+                            <span class="nav-icon">
+                                <i class="ri-contacts-book-3-line"></i>
+                            </span>
+                            <span class="nav-text"> Cases </span>
+                        </a>
+                    </li>
+
+                    <!-- Profile -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('social-worker.profile*') ? 'active' : '' }}"
+                           href="{{ route('social-worker.profile') }}">
+                            <span class="nav-icon">
+                                <i class="ri-user-line"></i>
+                            </span>
+                            <span class="nav-text"> Profile </span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
         </div>
         <!-- ========== App Menu End ========== -->
@@ -235,15 +236,23 @@
             <!-- Display Success Messages -->
             @if (session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
+                    <i class="ri-check-line me-2"></i>{{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            <!-- Display Error Messages -->
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="ri-error-warning-line me-2"></i>{{ session('error') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
 
             <!-- Display Status Messages -->
             @if (session('status'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('status') }}
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="ri-information-line me-2"></i>{{ session('status') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
@@ -258,8 +267,7 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12 text-center">
-                    <script>document.write(new Date().getFullYear())</script> &copy;  © CAMS  <a
-                        href="" class="fw-bold footer-text" target="_blank">KAGAYAKI</a>
+                    <script>document.write(new Date().getFullYear())</script> &copy; CAMS - Child Abuse Management System
                 </div>
             </div>
         </div>
@@ -279,8 +287,52 @@
 <!-- App Javascript (Require in all Page) -->
 <script src="{{ url('assets/js/app.js?v=' .env('CACHE_VERSION')) }}"></script>
 
+<!-- Global Delete Function -->
+<script>
+// Global delete function that works everywhere
+window.deleteCase = function(caseId, caseNumber) {
+    if (confirm('⚠️ Are you sure you want to delete case ' + caseNumber + '?\n\nThis action cannot be undone and will permanently remove:\n• All case information\n• Case timeline and updates\n• Associated notes')) {
+        // Create form dynamically
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/social-worker/cases/' + caseId;
+        form.style.display = 'none';
+
+        // Add CSRF token
+        var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        var csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        // Add method spoofing for DELETE
+        var methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+
+        // Add to body and submit
+        document.body.appendChild(form);
+        form.submit();
+    }
+};
+
+// Show alerts for session messages
+document.addEventListener('DOMContentLoaded', function() {
+    @if(session('success'))
+        console.log('✅ {{ session('success') }}');
+    @endif
+
+    @if(session('error'))
+        console.log('❌ {{ session('error') }}');
+    @endif
+});
+</script>
+
 <!-- Page Specific Scripts -->
-@yield('scripts')
+@stack('scripts')
 
 </body>
 </html>

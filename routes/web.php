@@ -42,7 +42,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'showDashboard'])->name('dashboard');
 
-
+        // Add more admin routes here as needed
+        // Route::get('/users', [AdminController::class, 'manageUsers'])->name('users');
+        // Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
+        // Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     });
 
     // Social Worker Routes
@@ -54,16 +57,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/profile', [SocialWorkerController::class, 'updateProfile'])->name('profile.update');
         Route::put('/profile/password', [SocialWorkerController::class, 'updatePassword'])->name('profile.password');
         Route::delete('/profile/avatar', [SocialWorkerController::class, 'removeAvatar'])->name('profile.remove-avatar');
-          Route::get('/add-cases', [SocialWorkerController::class, 'showAddCases'])->name('add-cases');
-        Route::get('/cases', [SocialWorkerController::class, 'showCases'])->name('cases');
 
+        // Case Management Routes
+        Route::prefix('cases')->name('cases.')->group(function () {
+            // Basic CRUD Routes
+            Route::get('/', [SocialWorkerController::class, 'showCases'])->name('index');
+            Route::get('/create', [SocialWorkerController::class, 'showCreateCase'])->name('create');
+            Route::post('/', [SocialWorkerController::class, 'storeCase'])->name('store');
+            Route::get('/{case}', [SocialWorkerController::class, 'showCase'])->name('show');
+            Route::get('/{case}/edit', [SocialWorkerController::class, 'editCase'])->name('edit');
+            Route::put('/{case}', [SocialWorkerController::class, 'updateCase'])->name('update');
+            Route::delete('/{case}', [SocialWorkerController::class, 'deleteCase'])->name('delete');
 
+            // Case Actions
+            Route::put('/{case}/status', [SocialWorkerController::class, 'updateCaseStatus'])->name('update-status');
+            Route::put('/{case}/assign-police', [SocialWorkerController::class, 'assignPoliceOfficer'])->name('assign-police');
+            Route::post('/{case}/notes', [SocialWorkerController::class, 'addCaseNote'])->name('add-note');
+
+            // Print Route
+            Route::get('/{case}/print', [SocialWorkerController::class, 'printCase'])->name('print');
+        });
     });
 
     // Police Officer Routes
     Route::middleware(['role:police_officer'])->prefix('police')->name('police.')->group(function () {
         Route::get('/dashboard', [PoliceController::class, 'showDashboard'])->name('dashboard');
 
-
+        // Add more police routes here as needed
+        // Route::get('/cases', [PoliceController::class, 'cases'])->name('cases');
+        // Route::get('/investigations', [PoliceController::class, 'investigations'])->name('investigations');
     });
 });
