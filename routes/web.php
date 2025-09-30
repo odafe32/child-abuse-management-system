@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PoliceController;
 use App\Http\Controllers\SocialWorkerController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to appropriate page based on auth status
@@ -57,6 +58,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/profile', [SocialWorkerController::class, 'updateProfile'])->name('profile.update');
         Route::put('/profile/password', [SocialWorkerController::class, 'updatePassword'])->name('profile.password');
         Route::delete('/profile/avatar', [SocialWorkerController::class, 'removeAvatar'])->name('profile.remove-avatar');
+
+        // Notification Routes
+        Route::prefix('notifications')->name('notifications.')->group(function () {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('/api/get', [NotificationController::class, 'getNotifications'])->name('api.get');
+            Route::get('/api/unread-count', [NotificationController::class, 'getUnreadCount'])->name('api.unread-count');
+            Route::put('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('mark-read');
+            Route::put('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('delete');
+        });
 
         // Case Management Routes
         Route::prefix('cases')->name('cases.')->group(function () {

@@ -73,7 +73,7 @@
                         </div>
 
                         <div class="d-flex align-items-center gap-1">
-                            <!-- Category -->
+                            <!-- Fullscreen -->
                             <div class="dropdown topbar-item d-none d-lg-flex">
                                 <button type="button" class="topbar-button" data-toggle="fullscreen">
                                     <i class="ri-fullscreen-line fs-24 fullscreen"></i>
@@ -85,36 +85,35 @@
                             <div class="dropdown topbar-item">
                                 <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <i class="ri-notification-3-line fs-24"></i>
-                                    <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill">3<span class="visually-hidden">unread messages</span></span>
+                                    <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="notification-count" style="display: none;">
+                                        0<span class="visually-hidden">unread messages</span>
+                                    </span>
                                 </button>
                                 <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end" aria-labelledby="page-header-notifications-dropdown">
                                     <div class="p-3 border-top-0 border-start-0 border-end-0 border-dashed border">
                                         <div class="row align-items-center">
                                             <div class="col">
-                                                <h6 class="m-0 fs-16 fw-semibold"> Notifications</h6>
+                                                <h6 class="m-0 fs-16 fw-semibold">Notifications</h6>
                                             </div>
                                             <div class="col-auto">
-                                                <a href="javascript: void(0);" class="text-dark text-decoration-underline">
-                                                    <small>Clear All</small>
-                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" id="mark-all-read">
+                                                    <small>Mark All Read</small>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div data-simplebar style="max-height: 280px;">
-                                        <!-- Item -->
-                                        <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap">
-                                            <div class="d-flex">
-                                                <div class="flex-shrink-0">
-                                                    <img src="" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-1" />
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <p class="mb-0"><span class="fw-medium">System </span>New case assigned for review</p>
-                                                </div>
+                                    <div data-simplebar style="max-height: 350px;" id="notifications-container">
+                                        <div class="text-center py-4" id="notifications-loading">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
                                             </div>
-                                        </a>
+                                            <p class="text-muted mt-2 mb-0">Loading notifications...</p>
+                                        </div>
                                     </div>
-                                    <div class="text-center py-3">
-                                        <a href="javascript:void(0);" class="btn btn-primary btn-sm">View All Notification <i class="ri-arrow-right-line ms-1"></i></a>
+                                    <div class="text-center py-3 border-top">
+                                        <a href="{{ route('social-worker.notifications.index') }}" class="btn btn-primary btn-sm">
+                                            View All Notifications <i class="ri-arrow-right-line ms-1"></i>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -210,6 +209,20 @@
                                 <i class="ri-contacts-book-3-line"></i>
                             </span>
                             <span class="nav-text"> Cases </span>
+                        </a>
+                    </li>
+
+                    <!-- Notifications -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('social-worker.notifications.*') ? 'active' : '' }}"
+                           href="{{ route('social-worker.notifications.index') }}">
+                            <span class="nav-icon position-relative">
+                                <i class="ri-notification-3-line"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="sidebar-notification-count" style="display: none; font-size: 0.6rem;">
+                                    0
+                                </span>
+                            </span>
+                            <span class="nav-text"> Notifications </span>
                         </a>
                     </li>
 
@@ -319,8 +332,220 @@ window.deleteCase = function(caseId, caseNumber) {
     }
 };
 
-// Show alerts for session messages
+// Notification System JavaScript
 document.addEventListener('DOMContentLoaded', function() {
+    const notificationDropdown = document.getElementById('page-header-notifications-dropdown');
+    const notificationCount = document.getElementById('notification-count');
+    const sidebarNotificationCount = document.getElementById('sidebar-notification-count');
+    const notificationsContainer = document.getElementById('notifications-container');
+    const notificationsLoading = document.getElementById('notifications-loading');
+    const markAllReadBtn = document.getElementById('mark-all-read');
+
+    // Load notifications when dropdown is opened
+    notificationDropdown.addEventListener('click', function() {
+        loadNotifications();
+    });
+
+    // Mark all as read
+    markAllReadBtn.addEventListener('click', function() {
+        markAllAsRead();
+    });
+
+    // Load notifications function
+    function loadNotifications() {
+        notificationsLoading.style.display = 'block';
+
+        fetch('{{ route("social-worker.notifications.api.get") }}')
+            .then(response => response.json())
+            .then(data => {
+                notificationsLoading.style.display = 'none';
+                displayNotifications(data.notifications);
+                updateNotificationCount(data.unread_count);
+            })
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+                notificationsLoading.style.display = 'none';
+                notificationsContainer.innerHTML = '<div class="text-center py-4"><p class="text-muted">Error loading notifications</p></div>';
+            });
+    }
+
+    // Display notifications
+    function displayNotifications(notifications) {
+        if (notifications.length === 0) {
+            notificationsContainer.innerHTML = '<div class="text-center py-4"><i class="ri-notification-off-line fs-48 text-muted"></i><p class="text-muted mt-2">No notifications</p></div>';
+            return;
+        }
+
+        let html = '';
+        notifications.forEach(notification => {
+            const isUnread = !notification.is_read;
+            const timeAgo = formatTimeAgo(notification.created_at);
+
+            html += `
+                <div class="dropdown-item py-3 border-bottom notification-item ${isUnread ? 'bg-light' : ''}" data-id="${notification.id}">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <div class="avatar-sm bg-${getPriorityColor(notification.priority)} rounded">
+                                <span class="avatar-title">
+                                    <i class="${getTypeIcon(notification.type)} fs-16"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1 fs-14 ${isUnread ? 'fw-bold' : ''}">${notification.title}</h6>
+                                ${isUnread ? '<span class="badge bg-primary rounded-pill">New</span>' : ''}
+                            </div>
+                            <p class="text-muted mb-1 fs-13">${notification.message}</p>
+                            <small class="text-muted">${timeAgo}</small>
+                            ${notification.data && notification.data.case_id ?
+                                `<div class="mt-1">
+                                    <a href="/social-worker/cases/${notification.data.case_id}" class="btn btn-sm btn-outline-primary">View Case</a>
+                                </div>` : ''
+                            }
+                        </div>
+                        <div class="flex-shrink-0">
+                            <button type="button" class="btn btn-sm btn-outline-secondary mark-read-btn" data-id="${notification.id}" title="Mark as read">
+                                <i class="ri-check-line"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        notificationsContainer.innerHTML = html;
+
+        // Add click handlers for mark as read buttons
+        document.querySelectorAll('.mark-read-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const notificationId = this.getAttribute('data-id');
+                markAsRead(notificationId);
+            });
+        });
+    }
+
+    // Mark single notification as read
+    function markAsRead(notificationId) {
+        fetch(`/social-worker/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI
+                const notificationItem = document.querySelector(`[data-id="${notificationId}"]`);
+                if (notificationItem) {
+                    notificationItem.classList.remove('bg-light');
+                    const badge = notificationItem.querySelector('.badge');
+                    if (badge) badge.remove();
+                    const title = notificationItem.querySelector('h6');
+                    if (title) title.classList.remove('fw-bold');
+                }
+                updateNotificationCount();
+            }
+        })
+        .catch(error => console.error('Error marking notification as read:', error));
+    }
+
+    // Mark all as read
+    function markAllAsRead() {
+        fetch('{{ route("social-worker.notifications.mark-all-read") }}', {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadNotifications(); // Reload notifications
+                updateNotificationCount(0);
+            }
+        })
+        .catch(error => console.error('Error marking all notifications as read:', error));
+    }
+
+    // Update notification count
+    function updateNotificationCount(count = null) {
+        if (count === null) {
+            fetch('{{ route("social-worker.notifications.api.unread-count") }}')
+                .then(response => response.json())
+                .then(data => {
+                    updateCountDisplay(data.unread_count);
+                });
+        } else {
+            updateCountDisplay(count);
+        }
+    }
+
+    function updateCountDisplay(count) {
+        // Update topbar notification count
+        if (count > 0) {
+            notificationCount.textContent = count;
+            notificationCount.style.display = 'block';
+        } else {
+            notificationCount.style.display = 'none';
+        }
+
+        // Update sidebar notification count
+        if (count > 0) {
+            sidebarNotificationCount.textContent = count;
+            sidebarNotificationCount.style.display = 'block';
+        } else {
+            sidebarNotificationCount.style.display = 'none';
+        }
+    }
+
+    // Helper functions
+    function getPriorityColor(priority) {
+        const colors = {
+            'low': 'success',
+            'medium': 'warning',
+            'high': 'danger',
+            'critical': 'dark'
+        };
+        return colors[priority] || 'secondary';
+    }
+
+    function getTypeIcon(type) {
+        const icons = {
+            'case_assigned': 'ri-file-add-line',
+            'case_updated': 'ri-file-edit-line',
+            'case_overdue': 'ri-alarm-warning-line',
+            'case_critical': 'ri-error-warning-line',
+            'police_assigned': 'ri-shield-user-line',
+            'case_resolved': 'ri-check-double-line',
+            'system_alert': 'ri-notification-3-line'
+        };
+        return icons[type] || 'ri-information-line';
+    }
+
+    function formatTimeAgo(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    }
+
+    // Load initial notification count
+    updateNotificationCount();
+
+    // Auto-refresh notifications every 30 seconds
+    setInterval(updateNotificationCount, 30000);
+
+    // Show alerts for session messages
     @if(session('success'))
         console.log('✅ {{ session('success') }}');
     @endif
