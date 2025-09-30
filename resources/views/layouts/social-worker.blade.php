@@ -82,7 +82,7 @@
                             </div>
 
                             <!-- Notification -->
-                            <div class="dropdown topbar-item">
+                            {{-- <div class="dropdown topbar-item">
                                 <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <i class="ri-notification-3-line fs-24"></i>
                                     <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill" id="notification-count" style="display: none;">
@@ -116,7 +116,7 @@
                                         </a>
                                     </div>
                                 </div>
-                            </div>
+                            </div> --}}
 
                             <!-- User -->
                             <div class="dropdown topbar-item">

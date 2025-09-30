@@ -93,9 +93,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Police Officer Routes
     Route::middleware(['role:police_officer'])->prefix('police')->name('police.')->group(function () {
         Route::get('/dashboard', [PoliceController::class, 'showDashboard'])->name('dashboard');
+        // Profile Routes
+        Route::get('/profile', [PoliceController::class, 'showProfile'])->name('profile');
+        Route::put('/profile', [PoliceController::class, 'updateProfile'])->name('profile.update');
+        Route::put('/profile/password', [PoliceController::class, 'updatePassword'])->name('profile.password');
+        Route::delete('/profile/avatar', [PoliceController::class, 'removeAvatar'])->name('profile.remove-avatar');
 
-        // Add more police routes here as needed
-        // Route::get('/cases', [PoliceController::class, 'cases'])->name('cases');
-        // Route::get('/investigations', [PoliceController::class, 'investigations'])->name('investigations');
+
+    // Notifications
+    Route::get('/notifications', [PoliceController::class, 'showNotifications'])->name('notifications');
+    Route::get('/notifications/api/get', [PoliceController::class, 'getNotifications'])->name('notifications.api.get');
+    Route::get('/notifications/api/unread-count', [PoliceController::class, 'getUnreadNotificationCount'])->name('notifications.api.unread-count');
+    Route::put('/notifications/{notification}/read', [PoliceController::class, 'markNotificationAsRead'])->name('notifications.mark-as-read');
+    Route::put('/notifications/mark-all-read', [PoliceController::class, 'markAllNotificationsAsRead'])->name('notifications.mark-all-read');
+    Route::delete('/notifications/{notification}', [PoliceController::class, 'deleteNotification'])->name('notifications.delete');
+
+
+    Route::get('/assigned-cases', [PoliceController::class, 'showAssignedCases'])->name('assigned-cases');
+    Route::get('/cases/{id}', [PoliceController::class, 'showCaseDetails'])->name('case-details');
+    Route::get('/cases/{id}/data', [PoliceController::class, 'getCaseData'])->name('case-data');
+    Route::put('/cases/{id}/update-status', [PoliceController::class, 'updateCaseStatus'])->name('update-case-status');
+    Route::post('/cases/{id}/add-note', [PoliceController::class, 'addInvestigationNote'])->name('add-investigation-note');
+    Route::get('/cases/{caseId}/evidence/{filename}', [PoliceController::class, 'downloadEvidence'])->name('download-evidence');
+
+
+       Route::get('/cases-history', [PoliceController::class, 'showCasesHistory'])->name('cases-history');
+    Route::get('/cases/{id}/timeline', [PoliceController::class, 'getCaseTimeline'])->name('case-timeline');
+
+
     });
 });

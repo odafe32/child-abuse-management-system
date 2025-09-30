@@ -12,6 +12,8 @@ class CaseUpdate extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $table = 'case_updates';
+
     /**
      * The data type of the auto-incrementing ID.
      *
@@ -35,9 +37,12 @@ class CaseUpdate extends Model
         'case_id',
         'user_id',
         'update_type',
-        'description',
-        'old_values',
-        'new_values',
+        'content',        // Main content field
+        'description',    // Alternative content field (if your DB uses this)
+        'metadata',
+        'is_internal',
+        'priority',
+        'status',
     ];
 
     /**
@@ -46,8 +51,10 @@ class CaseUpdate extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'old_values' => 'array',
-        'new_values' => 'array',
+        'metadata' => 'array',
+        'is_internal' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -85,7 +92,7 @@ class CaseUpdate extends Model
     }
 
     /**
-     * Get the case this update belongs to
+     * Get the case that this update belongs to
      */
     public function case(): BelongsTo
     {
@@ -93,11 +100,11 @@ class CaseUpdate extends Model
     }
 
     /**
-     * Get the user who made this update
+     * Get the user who created this update
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -106,21 +113,55 @@ class CaseUpdate extends Model
     public static function getUpdateTypes(): array
     {
         return [
-            'case_created' => 'Case Created',
-            'status_changed' => 'Status Changed',
-            'assigned_police' => 'Assigned to Police',
-            'note_added' => 'Note Added',
-            'information_updated' => 'Information Updated',
-            'case_closed' => 'Case Closed',
-            'case_transferred' => 'Case Transferred',
+            'status_change' => 'Status Change',
+            'assignment' => 'Assignment',
+            'investigation_note' => 'Investigation Note',
+            'evidence' => 'Evidence Added',
+            'interview' => 'Interview Conducted',
+            'follow_up' => 'Follow-up Action',
+            'closure' => 'Case Closure',
+            'transfer' => 'Case Transfer',
+            'other' => 'Other',
         ];
     }
 
     /**
-     * Get update type display name
+     * Get the display name for update type
      */
     public function getUpdateTypeDisplayAttribute(): string
     {
-        return self::getUpdateTypes()[$this->update_type] ?? $this->update_type;
+        return self::getUpdateTypes()[$this->update_type] ?? ucfirst(str_replace('_', ' ', $this->update_type));
+    }
+
+    /**
+     * Scope to filter by update type
+     */
+    public function scopeByType($query, string $type)
+    {
+        return $query->where('update_type', $type);
+    }
+
+    /**
+     * Scope to filter by case
+     */
+    public function scopeByCase($query, string $caseId)
+    {
+        return $query->where('case_id', $caseId);
+    }
+
+    /**
+     * Scope to filter by user
+     */
+    public function scopeByUser($query, string $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope to get recent updates
+     */
+    public function scopeRecent($query, int $days = 30)
+    {
+        return $query->where('created_at', '>=', now()->subDays($days));
     }
 }
