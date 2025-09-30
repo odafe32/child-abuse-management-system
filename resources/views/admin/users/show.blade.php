@@ -18,13 +18,13 @@
             $roleClass = match($user->role) {
                 'admin' => 'badge-danger',
                 'social_worker' => 'badge-success',
-                'police' => 'badge-info',
+                'police_officer' => 'badge-info',
                 default => 'badge-secondary',
             };
             $roleIcon = match($user->role) {
                 'admin' => 'fas fa-user-shield',
                 'social_worker' => 'fas fa-user-friends',
-                'police' => 'fas fa-shield-alt',
+                'police_officer' => 'fas fa-shield-alt',
                 default => 'fas fa-user',
             };
         @endphp
@@ -119,7 +119,7 @@
         </div>
 
         <!-- User Statistics -->
-        @if($user->role === 'social_worker' || $user->role === 'police')
+        @if($user->role === 'social_worker' || $user->role === 'police_officer')
         <div class="card mt-3">
             <div class="card-header">
                 <h6 class="m-0 font-weight-bold text-primary">
@@ -141,7 +141,7 @@
                             <div class="h4 mb-0 font-weight-bold text-success">{{ $user->assignedCases()->whereIn('status', ['resolved', 'closed'])->count() }}</div>
                             <div class="text-xs font-weight-bold text-uppercase text-muted">Resolved Cases</div>
                         </div>
-                    @elseif($user->role === 'police')
+                    @elseif($user->role === 'police_officer')
                         <div class="col-md-4">
                             <div class="h4 mb-0 font-weight-bold text-primary">{{ $user->policeCases()->count() }}</div>
                             <div class="text-xs font-weight-bold text-uppercase text-muted">Assigned Cases</div>

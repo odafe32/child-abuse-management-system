@@ -188,13 +188,13 @@
                                             $roleClass = match($user->role) {
                                                 'admin' => 'bg-danger text-white',
                                                 'social_worker' => 'bg-success text-white',
-                                                'police' => 'bg-info text-white',
+                                                'police_officer' => 'bg-info text-white',
                                                 default => 'bg-secondary text-white',
                                             };
                                             $roleIcon = match($user->role) {
                                                 'admin' => 'fas fa-user-shield',
                                                 'social_worker' => 'fas fa-user-friends',
-                                                'police' => 'fas fa-shield-alt',
+                                                'police_officer' => 'fas fa-shield-alt',
                                                 default => 'fas fa-user',
                                             };
                                         @endphp
@@ -304,7 +304,7 @@
                                 <option value="">Select Role</option>
                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
                                 <option value="social_worker" {{ old('role') == 'social_worker' ? 'selected' : '' }}>Social Worker</option>
-                                <option value="police" {{ old('role') == 'police' ? 'selected' : '' }}>Police Officer</option>
+                                <option value="police_officer" {{ old('role') == 'police_officer' ? 'selected' : '' }}>Police Officer</option>
                             </select>
                             <div class="invalid-feedback"></div>
                         </div>
@@ -387,7 +387,7 @@
                                 <option value="">Select Role</option>
                                 <option value="admin">Administrator</option>
                                 <option value="social_worker">Social Worker</option>
-                                <option value="police">Police Officer</option>
+                                <option value="police_officer">Police Officer</option>
                             </select>
                             <div class="invalid-feedback"></div>
                         </div>
@@ -459,7 +459,7 @@
                             <option value="">All Roles</option>
                             <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
                             <option value="social_worker" {{ request('role') == 'social_worker' ? 'selected' : '' }}>Social Worker</option>
-                            <option value="police" {{ request('role') == 'police' ? 'selected' : '' }}>Police Officer</option>
+                            <option value="police_officer" {{ request('role') == 'police_officer' ? 'selected' : '' }}>Police Officer</option>
                         </select>
                     </div>
                     <div class="mb-3">

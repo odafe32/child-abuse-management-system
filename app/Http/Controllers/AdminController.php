@@ -34,7 +34,7 @@ class AdminController extends Controller
 
         // Get user role counts
         $socialWorkers = User::where('role', 'social_worker')->count();
-        $policeOfficers = User::where('role', 'police')->count();
+        $policeOfficers = User::where('role', 'police_officer')->count();
         $admins = User::where('role', 'admin')->count();
 
         // Get priority case counts
@@ -140,7 +140,8 @@ class AdminController extends Controller
         // Calculate statistics
         $totalUsers = User::count();
         $socialWorkers = User::where('role', 'social_worker')->count();
-        $policeOfficers = User::where('role', 'police')->count();
+        $policeOfficers = User::where('role', 'police_officer')->count();
+
         $admins = User::where('role', 'admin')->count();
 
         $viewData = [
@@ -166,7 +167,8 @@ class AdminController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'employee_id' => ['required', 'string', 'max:255', 'unique:users'],
-            'role' => ['required', 'string', 'in:admin,social_worker,police'],
+            'role' => ['required', 'string', 'in:admin,social_worker,police_officer'],
+
             'department' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
@@ -271,7 +273,8 @@ class AdminController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'employee_id' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role' => ['required', 'string', 'in:admin,social_worker,police_officer'],
+           'role' => ['required', 'string', 'in:admin,social_worker,police_officer'],
+
             'department' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
@@ -443,12 +446,12 @@ class AdminController extends Controller
             }
 
             // If user was a police officer, reassign their cases
-            if ($oldRole === 'police') {
+            if ($oldRole === 'police_officer') {
                 $casesToReassign = CaseModel::where('police_officer_id', $user->id)->get();
 
                 if ($casesToReassign->count() > 0) {
                     // Try to find another police officer to reassign cases to
-                    $availablePoliceOfficer = User::where('role', 'police')
+                    $availablePoliceOfficer = User::where('role', 'police_officer')
                         ->where('id', '!=', $user->id)
                         ->first();
 
@@ -516,12 +519,12 @@ class AdminController extends Controller
             }
 
             // Handle police officer cases
-            if ($user->role === 'police') {
+            if ($user->role === 'police_officer') {
                 $casesToReassign = CaseModel::where('police_officer_id', $user->id)->get();
 
                 if ($casesToReassign->count() > 0) {
                     // Try to find another police officer to reassign cases to
-                    $availablePoliceOfficer = User::where('role', 'police')
+                    $availablePoliceOfficer = User::where('role', 'police_officer')
                         ->where('id', '!=', $user->id)
                         ->first();
 
@@ -620,7 +623,7 @@ class AdminController extends Controller
 
         // Get filter options
         $socialWorkers = User::where('role', 'social_worker')->orderBy('name')->get();
-        $policeOfficers = User::where('role', 'police')->orderBy('name')->get();
+        $policeOfficers = User::where('role', 'police_officer')->orderBy('name')->get();
 
         // Calculate statistics
         $totalCases = CaseModel::count();

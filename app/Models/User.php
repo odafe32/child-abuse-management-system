@@ -19,7 +19,7 @@ class User extends Authenticatable
     // Role constants - Updated to match AdminController expectations
     const ROLE_ADMIN = 'admin';
     const ROLE_SOCIAL_WORKER = 'social_worker';
-    const ROLE_POLICE = 'police'; // Changed from police_officer to police
+    const ROLE_POLICE = 'police_officer'; // Changed from police_officer to police
 
     /**
      * The data type of the auto-incrementing ID.
