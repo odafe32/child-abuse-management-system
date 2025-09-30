@@ -41,13 +41,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin Routes
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', [AdminController::class, 'showDashboard'])->name('dashboard');
+     Route::get('/dashboard', [AdminController::class, 'showDashboard'])->name('dashboard');
 
-        // Add more admin routes here as needed
-        // Route::get('/users', [AdminController::class, 'manageUsers'])->name('users');
-        // Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
-        // Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
-    });
+    // User Management
+    Route::get('/users', [AdminController::class, 'manageUsers'])->name('users');
+    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
+    Route::get('/users/{id}', [AdminController::class, 'showUser'])->name('users.show');
+    Route::get('/users/{id}/edit', [AdminController::class, 'editUser'])->name('users.edit');
+    Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
+    Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('users.destroy');
+
+    // Case Management
+    Route::get('/cases', [AdminController::class, 'manageCases'])->name('cases');
+
+    // Profile Routes
+    Route::get('/profile', [AdminController::class, 'showProfile'])->name('profile');
+    Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
+    Route::put('/profile/password', [AdminController::class, 'updatePassword'])->name('profile.password');
+    Route::delete('/profile/avatar', [AdminController::class, 'removeAvatar'])->name('profile.remove-avatar');
+});
 
     // Social Worker Routes
     Route::middleware(['role:social_worker'])->prefix('social-worker')->name('social-worker.')->group(function () {

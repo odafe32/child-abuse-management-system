@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,10 +16,10 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasUuids;
 
-    // Role constants
+    // Role constants - Updated to match AdminController expectations
     const ROLE_ADMIN = 'admin';
     const ROLE_SOCIAL_WORKER = 'social_worker';
-    const ROLE_POLICE_OFFICER = 'police_officer';
+    const ROLE_POLICE = 'police'; // Changed from police_officer to police
 
     /**
      * The data type of the auto-incrementing ID.
@@ -42,6 +43,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'email_verified_at', // Added this
         'password',
         'role',
         'employee_id',
@@ -87,6 +89,11 @@ class User extends Authenticatable
             if (empty($model->{$model->getKeyName()})) {
                 $model->{$model->getKeyName()} = Str::uuid()->toString();
             }
+
+            // Set default values
+            if (empty($model->is_active)) {
+                $model->is_active = true;
+            }
         });
     }
 
@@ -111,6 +118,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Get cases assigned to this social worker
+     */
+    public function assignedCases(): HasMany
+    {
+        return $this->hasMany(CaseModel::class, 'social_worker_id');
+    }
+
+    /**
+     * Get cases assigned to this police officer
+     */
+    public function policeCases(): HasMany
+    {
+        return $this->hasMany(CaseModel::class, 'police_officer_id');
+    }
+
+    /**
      * Get avatar URL or default avatar
      */
     public function getAvatarUrl(): string
@@ -131,7 +154,7 @@ class User extends Authenticatable
         $defaultAvatars = [
             self::ROLE_ADMIN => url('assets/images/default-admin-avatar.png'),
             self::ROLE_SOCIAL_WORKER => url('assets/images/default-social-worker-avatar.png'),
-            self::ROLE_POLICE_OFFICER => url('assets/images/default-police-avatar.png'),
+            self::ROLE_POLICE => url('assets/images/default-police-avatar.png'),
         ];
 
         return $defaultAvatars[$this->role] ?? url('assets/images/default-avatar.png');
@@ -160,7 +183,7 @@ class User extends Authenticatable
         return [
             self::ROLE_ADMIN => 'Administrator',
             self::ROLE_SOCIAL_WORKER => 'Social Worker',
-            self::ROLE_POLICE_OFFICER => 'Police Officer',
+            self::ROLE_POLICE => 'Police Officer', // Updated display name
         ];
     }
 
@@ -191,9 +214,9 @@ class User extends Authenticatable
     /**
      * Check if user is police officer
      */
-    public function isPoliceOfficer(): bool
+    public function isPolice(): bool // Updated method name
     {
-        return $this->hasRole(self::ROLE_POLICE_OFFICER);
+        return $this->hasRole(self::ROLE_POLICE);
     }
 
     /**
@@ -202,6 +225,14 @@ class User extends Authenticatable
     public function getRoleDisplayName(): string
     {
         return self::getRoles()[$this->role] ?? 'Unknown';
+    }
+
+    /**
+     * Get role display attribute (for blade views)
+     */
+    public function getRoleDisplayAttribute(): string
+    {
+        return $this->getRoleDisplayName();
     }
 
     /**
@@ -241,7 +272,20 @@ class User extends Authenticatable
      */
     public function scopePoliceOfficers(Builder $query): Builder
     {
-        return $query->byRole(self::ROLE_POLICE_OFFICER);
+        return $query->byRole(self::ROLE_POLICE);
+    }
+
+    /**
+     * Scope to search users
+     */
+    public function scopeSearch(Builder $query, string $search): Builder
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%")
+              ->orWhere('employee_id', 'like', "%{$search}%")
+              ->orWhere('department', 'like', "%{$search}%");
+        });
     }
 
     /**
@@ -263,8 +307,24 @@ class User extends Authenticatable
         return match($this->role) {
             self::ROLE_ADMIN => 'admin.dashboard',
             self::ROLE_SOCIAL_WORKER => 'social-worker.dashboard',
-            self::ROLE_POLICE_OFFICER => 'police.dashboard',
+            self::ROLE_POLICE => 'police.dashboard',
             default => 'dashboard'
         };
+    }
+
+    /**
+     * Check if user is active
+     */
+    public function isActive(): bool
+    {
+        return $this->is_active && $this->email_verified_at !== null;
+    }
+
+    /**
+     * Get user's full avatar URL attribute
+     */
+    public function getAvatarUrlAttribute(): string
+    {
+        return $this->getAvatarUrl();
     }
 }
