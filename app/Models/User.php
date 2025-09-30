@@ -8,6 +8,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -46,6 +47,7 @@ class User extends Authenticatable
         'employee_id',
         'department',
         'phone',
+        'avatar',
         'is_active',
     ];
 
@@ -106,6 +108,48 @@ class User extends Authenticatable
     public function newUniqueId(): string
     {
         return (string) Str::uuid();
+    }
+
+    /**
+     * Get avatar URL or default avatar
+     */
+    public function getAvatarUrl(): string
+    {
+        if ($this->avatar && Storage::disk('public')->exists($this->avatar)) {
+            return Storage::disk('public')->url($this->avatar);
+        }
+
+        // Return default avatar based on role
+        return $this->getDefaultAvatar();
+    }
+
+    /**
+     * Get default avatar based on role
+     */
+    public function getDefaultAvatar(): string
+    {
+        $defaultAvatars = [
+            self::ROLE_ADMIN => url('assets/images/default-admin-avatar.png'),
+            self::ROLE_SOCIAL_WORKER => url('assets/images/default-social-worker-avatar.png'),
+            self::ROLE_POLICE_OFFICER => url('assets/images/default-police-avatar.png'),
+        ];
+
+        return $defaultAvatars[$this->role] ?? url('assets/images/default-avatar.png');
+    }
+
+    /**
+     * Get user initials for avatar fallback
+     */
+    public function getInitials(): string
+    {
+        $names = explode(' ', $this->name);
+        $initials = '';
+
+        foreach ($names as $name) {
+            $initials .= strtoupper(substr($name, 0, 1));
+        }
+
+        return substr($initials, 0, 2);
     }
 
     /**

@@ -49,6 +49,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:social_worker'])->prefix('social-worker')->name('social-worker.')->group(function () {
         Route::get('/dashboard', [SocialWorkerController::class, 'showDashboard'])->name('dashboard');
 
+        // Profile Routes
+        Route::get('/profile', [SocialWorkerController::class, 'showProfile'])->name('profile');
+        Route::put('/profile', [SocialWorkerController::class, 'updateProfile'])->name('profile.update');
+        Route::put('/profile/password', [SocialWorkerController::class, 'updatePassword'])->name('profile.password');
+        Route::delete('/profile/avatar', [SocialWorkerController::class, 'removeAvatar'])->name('profile.remove-avatar');
+          Route::get('/add-cases', [SocialWorkerController::class, 'showAddCases'])->name('add-cases');
+        Route::get('/cases', [SocialWorkerController::class, 'showCases'])->name('cases');
+
 
     });
 
