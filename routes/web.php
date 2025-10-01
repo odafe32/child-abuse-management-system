@@ -54,6 +54,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Case Management
     Route::get('/cases', [AdminController::class, 'manageCases'])->name('cases');
 
+    // Add these routes inside your admin middleware group in web.php
+
+    // Case Management Routes (add these to the existing admin routes)
+    Route::get('/cases/{id}', [AdminController::class, 'showCase'])->name('cases.show');
+    Route::get('/cases/{id}/data', [AdminController::class, 'getCaseData'])->name('cases.data');
+    Route::put('/cases/{id}/assign', [AdminController::class, 'assignCase'])->name('cases.assign');
+    Route::put('/cases/{id}/status', [AdminController::class, 'updateCaseStatus'])->name('cases.update-status');
+Route::delete('/cases/{id}', [AdminController::class, 'deleteCase'])->name('cases.delete');
     // Profile Routes
     Route::get('/profile', [AdminController::class, 'showProfile'])->name('profile');
     Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');

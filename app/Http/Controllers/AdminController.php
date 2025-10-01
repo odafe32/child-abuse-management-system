@@ -744,4 +744,425 @@ class AdminController extends Controller
         return redirect()->route('admin.profile')
             ->with('error', 'No avatar to remove.');
     }
+
+
+/**
+ * Show case details (for modal)
+ */
+public function showCase(string $id): View
+{
+    $case = CaseModel::with(['socialWorker', 'policeOfficer', 'updates.user'])->findOrFail($id);
+
+    return view('admin.cases.show', compact('case'));
+}
+
+/**
+ * Get case data (for AJAX)
+ */
+public function getCaseData(string $id): JsonResponse
+{
+    try {
+        $case = CaseModel::with(['socialWorker', 'policeOfficer'])->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'case' => [
+                'id' => $case->id,
+                'case_number' => $case->case_number,
+                'child_name' => $case->child_name,
+                'status' => $case->status,
+                'priority' => $case->priority,
+                'abuse_type' => $case->abuse_type,
+                'social_worker_id' => $case->social_worker_id,
+                'police_officer_id' => $case->police_officer_id,
+                'description' => $case->description,
+                'location' => $case->location,
+                'date_reported' => $case->date_reported->format('Y-m-d'),
+                'social_worker' => $case->socialWorker ? $case->socialWorker->name : null,
+                'police_officer' => $case->policeOfficer ? $case->policeOfficer->name : null,
+            ]
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Failed to get case data', [
+            'case_id' => $id,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load case data.',
+        ], 500);
+    }
+}
+
+/**
+ * Assign case to social worker and/or police officer
+ */
+/**
+ * Assign case to social worker and/or police officer
+ */
+public function assignCase(Request $request, string $id): RedirectResponse
+{
+    $case = CaseModel::findOrFail($id);
+
+    $request->validate([
+        'social_worker_id' => ['nullable', 'exists:users,id'],
+        'police_officer_id' => ['nullable', 'exists:users,id'],
+        'notes' => ['nullable', 'string', 'max:1000'],
+    ]);
+
+    // Validate that selected users have correct roles
+    if ($request->filled('social_worker_id')) {
+        $socialWorker = User::where('id', $request->social_worker_id)
+            ->where('role', 'social_worker')
+            ->first();
+
+        if (!$socialWorker) {
+            return redirect()->back()->with('error', 'Invalid social worker selected.');
+        }
+    }
+
+    if ($request->filled('police_officer_id')) {
+        $policeOfficer = User::where('id', $request->police_officer_id)
+            ->where('role', 'police_officer')
+            ->first();
+
+        if (!$policeOfficer) {
+            return redirect()->back()->with('error', 'Invalid police officer selected.');
+        }
+    }
+
+    try {
+        DB::beginTransaction();
+
+        $oldSocialWorkerId = $case->social_worker_id;
+        $oldPoliceOfficerId = $case->police_officer_id;
+
+        // Update case assignments
+        $case->update([
+            'social_worker_id' => $request->social_worker_id,
+            'police_officer_id' => $request->police_officer_id,
+        ]);
+
+        // Create case update record
+        $updateNotes = [];
+
+        if ($oldSocialWorkerId != $request->social_worker_id) {
+            if ($request->social_worker_id) {
+                $socialWorker = User::find($request->social_worker_id);
+                $updateNotes[] = "Assigned to social worker: {$socialWorker->name}";
+            } else {
+                $updateNotes[] = "Unassigned from social worker";
+            }
+        }
+
+        if ($oldPoliceOfficerId != $request->police_officer_id) {
+            if ($request->police_officer_id) {
+                $policeOfficer = User::find($request->police_officer_id);
+                $updateNotes[] = "Assigned to police officer: {$policeOfficer->name}";
+            } else {
+                $updateNotes[] = "Unassigned from police officer";
+            }
+        }
+
+        if ($request->filled('notes')) {
+            $updateNotes[] = "Notes: " . $request->notes;
+        }
+
+        if (!empty($updateNotes)) {
+            CaseUpdate::create([
+                'case_id' => $case->id,
+                'user_id' => Auth::id(),
+                'update_type' => 'assignment',
+                'description' => implode('. ', $updateNotes),
+            ]);
+        }
+
+        // Send notifications to assigned users safely
+        $this->sendAssignmentNotifications($case, $request, $oldSocialWorkerId, $oldPoliceOfficerId);
+
+        DB::commit();
+
+        Log::info('Admin assigned case', [
+            'admin_id' => Auth::id(),
+            'case_id' => $case->id,
+            'case_number' => $case->case_number,
+            'social_worker_id' => $request->social_worker_id,
+            'police_officer_id' => $request->police_officer_id,
+        ]);
+
+        return redirect()->route('admin.cases')
+            ->with('success', "Case {$case->case_number} has been assigned successfully.");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('Failed to assign case', [
+            'admin_id' => Auth::id(),
+            'case_id' => $case->id,
+            'error' => $e->getMessage(),
+        ]);
+
+        return redirect()->back()
+            ->with('error', 'Failed to assign case. Please try again.');
+    }
+}
+
+/**
+ * Send assignment notifications safely
+ */
+private function sendAssignmentNotifications($case, $request, $oldSocialWorkerId, $oldPoliceOfficerId)
+{
+    try {
+        // Check if notifications table exists
+        if (!Schema::hasTable('cams_notifications')) {
+            Log::info('Notifications table does not exist, skipping notifications');
+            return;
+        }
+
+        // Send notification to newly assigned social worker
+        if ($request->social_worker_id && $request->social_worker_id != $oldSocialWorkerId) {
+            try {
+                CamsNotification::create([
+                    'user_id' => $request->social_worker_id,
+                    'title' => 'New Case Assignment',
+                    'message' => "You have been assigned to case {$case->case_number}: {$case->child_name}",
+                    'type' => 'case_assignment',
+                    'data' => json_encode(['case_id' => $case->id]),
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('Failed to create notification for social worker', [
+                    'user_id' => $request->social_worker_id,
+                    'case_id' => $case->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Send notification to newly assigned police officer
+        if ($request->police_officer_id && $request->police_officer_id != $oldPoliceOfficerId) {
+            try {
+                CamsNotification::create([
+                    'user_id' => $request->police_officer_id,
+                    'title' => 'New Case Assignment',
+                    'message' => "You have been assigned to case {$case->case_number}: {$case->child_name}",
+                    'type' => 'case_assignment',
+                    'data' => json_encode(['case_id' => $case->id]),
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('Failed to create notification for police officer', [
+                    'user_id' => $request->police_officer_id,
+                    'case_id' => $case->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    } catch (\Exception $e) {
+        Log::warning('Failed to send assignment notifications', [
+            'case_id' => $case->id,
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
+
+/**
+ * Update case status and priority
+ */
+/**
+ * Update case status and priority
+ */
+public function updateCaseStatus(Request $request, string $id): RedirectResponse
+{
+    $case = CaseModel::findOrFail($id);
+
+    $request->validate([
+        'status' => ['required', 'string', 'in:' . implode(',', array_keys(CaseModel::getStatuses()))],
+        'priority' => ['required', 'string', 'in:' . implode(',', array_keys(CaseModel::getPriorities()))],
+        'notes' => ['nullable', 'string', 'max:1000'],
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        $oldStatus = $case->status;
+        $oldPriority = $case->priority;
+
+        // Update case
+        $case->update([
+            'status' => $request->status,
+            'priority' => $request->priority,
+        ]);
+
+        // Create case update record
+        $updateNotes = [];
+
+        if ($oldStatus != $request->status) {
+            $statusDisplay = CaseModel::getStatuses()[$request->status];
+            $updateNotes[] = "Status changed to: {$statusDisplay}";
+        }
+
+        if ($oldPriority != $request->priority) {
+            $priorityDisplay = CaseModel::getPriorities()[$request->priority];
+            $updateNotes[] = "Priority changed to: {$priorityDisplay}";
+        }
+
+        if ($request->filled('notes')) {
+            $updateNotes[] = "Notes: " . $request->notes;
+        }
+
+        if (!empty($updateNotes)) {
+            CaseUpdate::create([
+                'case_id' => $case->id,
+                'user_id' => Auth::id(),
+                'update_type' => 'status_change',
+                'description' => implode('. ', $updateNotes),
+            ]);
+        }
+
+        // Send notifications to assigned users if status changed significantly
+        if ($oldStatus != $request->status) {
+            $this->sendCaseStatusNotifications($case, $request->status);
+        }
+
+        DB::commit();
+
+        Log::info('Admin updated case status', [
+            'admin_id' => Auth::id(),
+            'case_id' => $case->id,
+            'case_number' => $case->case_number,
+            'old_status' => $oldStatus,
+            'new_status' => $request->status,
+            'old_priority' => $oldPriority,
+            'new_priority' => $request->priority,
+        ]);
+
+        return redirect()->route('admin.cases')
+            ->with('success', "Case {$case->case_number} has been updated successfully.");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('Failed to update case status', [
+            'admin_id' => Auth::id(),
+            'case_id' => $case->id,
+            'error' => $e->getMessage(),
+        ]);
+
+        return redirect()->back()
+            ->with('error', 'Failed to update case. Please try again.');
+    }
+}
+
+/**
+ * Send case status notifications safely
+ */
+private function sendCaseStatusNotifications($case, $newStatus)
+{
+    try {
+        // Check if notifications table exists and get its structure
+        if (!Schema::hasTable('cams_notifications')) {
+            Log::info('Notifications table does not exist, skipping notifications');
+            return;
+        }
+
+        // Get the column type for user_id
+        $columns = Schema::getColumnListing('cams_notifications');
+        if (!in_array('user_id', $columns)) {
+            Log::info('user_id column does not exist in notifications table');
+            return;
+        }
+
+        $notificationUsers = [];
+
+        if ($case->social_worker_id) {
+            $notificationUsers[] = $case->social_worker_id;
+        }
+
+        if ($case->police_officer_id) {
+            $notificationUsers[] = $case->police_officer_id;
+        }
+
+        foreach ($notificationUsers as $userId) {
+            try {
+                // Try to create notification - if it fails due to type mismatch, log and continue
+                CamsNotification::create([
+                    'user_id' => $userId,
+                    'title' => 'Case Status Updated',
+                    'message' => "Case {$case->case_number} status changed to: " . CaseModel::getStatuses()[$newStatus],
+                    'type' => 'case_update',
+                    'data' => json_encode(['case_id' => $case->id]),
+                ]);
+            } catch (\Exception $e) {
+                // Log the notification error but don't fail the whole operation
+                Log::warning('Failed to create notification for user', [
+                    'user_id' => $userId,
+                    'case_id' => $case->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    } catch (\Exception $e) {
+        Log::warning('Failed to send case status notifications', [
+            'case_id' => $case->id,
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
+
+/**
+ * Delete a case
+ */
+public function deleteCase(string $id): RedirectResponse
+{
+    $case = CaseModel::findOrFail($id);
+
+    try {
+        DB::beginTransaction();
+
+        $caseNumber = $case->case_number;
+        $childName = $case->child_name;
+
+        // Delete related records
+        CaseUpdate::where('case_id', $case->id)->delete();
+        CamsNotification::where('data->case_id', $case->id)->delete();
+
+        // Delete evidence files if they exist
+        if ($case->evidence_files) {
+            $evidenceFiles = json_decode($case->evidence_files, true);
+            if (is_array($evidenceFiles)) {
+                foreach ($evidenceFiles as $file) {
+                    if (Storage::disk('private')->exists($file)) {
+                        Storage::disk('private')->delete($file);
+                    }
+                }
+            }
+        }
+
+        // Delete the case
+        $case->delete();
+
+        DB::commit();
+
+        Log::info('Admin deleted case', [
+            'admin_id' => Auth::id(),
+            'case_number' => $caseNumber,
+            'child_name' => $childName,
+        ]);
+
+        return redirect()->route('admin.cases')
+            ->with('success', "Case {$caseNumber} has been deleted successfully.");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('Failed to delete case', [
+            'admin_id' => Auth::id(),
+            'case_id' => $case->id,
+            'error' => $e->getMessage(),
+        ]);
+
+        return redirect()->back()
+            ->with('error', 'Failed to delete case. Please try again.');
+    }
+}
 }
